@@ -44,6 +44,7 @@ func FileServer(fs fs.FS) http.Handler {
 			r.URL.Path = "/" + rawpath
 		}
 
+		w.Header().Set("cache-control", "public, immutable, max-age=31557600")
 		hfs.ServeHTTP(w, r)
 	})
 }
