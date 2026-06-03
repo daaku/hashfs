@@ -1,0 +1,10 @@
+@font-face {
+  font-family: "Foo";
+  src:
+    url(foo) format("woff2"),
+    url('bar.txt') format("woff"),
+    url('missing') format("woff"),
+    url("fonts/baz.txt") format("truetype");
+}
+
+@import "boom.css";

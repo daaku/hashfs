@@ -1,4 +1,4 @@
-package hashfs_test
+package hashfs
 
 import (
 	"embed"
@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/daaku/ensure"
-	"github.com/daaku/hashfs"
 )
 
 const (
@@ -20,15 +19,15 @@ const (
 
 //go:embed assets/*
 var assets embed.FS
-var assetsH = hashfs.FileServer(assets)
+var assetsH = FileServer(assets)
 
 func TestValidPath(t *testing.T) {
-	ensure.DeepEqual(t, hashfs.Path(assets, unhashedMainJS), hashedMainJS)
-	ensure.DeepEqual(t, hashfs.Path(assets, unhashedEmpty), hashedEmpty)
+	ensure.DeepEqual(t, Path(assets, unhashedMainJS), hashedMainJS)
+	ensure.DeepEqual(t, Path(assets, unhashedEmpty), hashedEmpty)
 }
 
 func TestInvalidPath(t *testing.T) {
-	p, err := hashfs.MaybePath(assets, "foo")
+	p, err := MaybePath(assets, "foo")
 	ensure.DeepEqual(t, p, "")
 	ensure.Err(t, err, regexp.MustCompile("hashfs: error opening file"))
 }
@@ -37,7 +36,7 @@ func TestPathPanic(t *testing.T) {
 	defer func() {
 		ensure.Err(t, recover().(error), regexp.MustCompile("hashfs: error opening file"))
 	}()
-	hashfs.Path(assets, "foo")
+	Path(assets, "foo")
 }
 
 func TestValidRequest(t *testing.T) {
@@ -76,4 +75,37 @@ func TestInvalidRequest(t *testing.T) {
 		ensure.DeepEqual(t, w.Code, http.StatusBadRequest)
 		ensure.StringContains(t, w.Body.String(), c.err)
 	}
+}
+
+func TestHashCSSAsset(t *testing.T) {
+	out, err := hashCSSAssets(assets, "assets/main.css")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, out,
+		`@font-face {
+  font-family: "Foo";
+  src:
+    url(foo.b5bb9d8014a0) format("woff2"),
+    url('bar.7d865e959b24.txt') format("woff"),
+    url('missing') format("woff"),
+    url("fonts/baz.bf07a7fbb825.txt") format("truetype");
+}
+
+@import "boom.8d7a531d714c.css";
+`)
+}
+
+func TestHashCSSAssetSub(t *testing.T) {
+	out, err := hashCSSAssets(assets, "assets/sub/main.css")
+	ensure.Nil(t, err)
+	ensure.DeepEqual(t, out, `@import "../boom.8d7a531d714c.css";
+`)
+}
+
+func TestHashCSSRequest(t *testing.T) {
+	const unhashed = "assets/main.css"
+	const hashed = "assets/main.3b8e3d604b9f.css"
+	r := httptest.NewRequest("GET", "/"+hashed, nil)
+	w := httptest.NewRecorder()
+	assetsH.ServeHTTP(w, r)
+	ensure.DeepEqual(t, w.Code, http.StatusOK)
 }
