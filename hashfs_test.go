@@ -108,4 +108,5 @@ func TestHashCSSRequest(t *testing.T) {
 	w := httptest.NewRecorder()
 	assetsH.ServeHTTP(w, r)
 	ensure.DeepEqual(t, w.Code, http.StatusOK)
+	ensure.DeepEqual(t, w.Header().Get("Content-Type"), "text/css; charset=utf-8")
 }

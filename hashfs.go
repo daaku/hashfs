@@ -54,6 +54,7 @@ func FileServer(fs fs.FS) http.Handler {
 			content, err := hashCSSAssets(fs, filename)
 			if err == nil {
 				setImmutable(w.Header())
+				w.Header().Set("Content-Type", "text/css; charset=utf-8")
 				io.WriteString(w, content)
 				return
 			}
